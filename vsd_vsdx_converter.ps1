@@ -13,8 +13,6 @@ function Write-Log {
 ################ VSD to VSDX conversion ############
 function Convert-VSD ($sourceDirectory, $destinationDirectory) {
 
-	$sourceDirectory = $sourceTextBox.Text
-	$destinationDirectory = $destinationTextBox.Text
 	$saveToSameDir = if ($destinationDirectory.Trim()) { $false } else { $true }
 
 	if (-not ($sourceDirectory.Trim())) {
@@ -160,5 +158,5 @@ $convertButton.Location = [System.Drawing.Point]::new(140, 130)
 $convertButton.Add_Click({Convert-VSD $sourceTextBox.Text $destinationTextBox.Text})
 $form.Controls.Add($convertButton)
 
-# Launch the app
+# Launch the app window
 [System.Windows.Forms.Application]::Run($form)
