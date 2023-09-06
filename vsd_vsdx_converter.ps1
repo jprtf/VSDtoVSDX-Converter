@@ -82,7 +82,6 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
                 Write-Log 'Unable to use MS Visio.'
                 Write-Log $_
                 [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
-                $form.Close()
             }
         }
     }
@@ -100,7 +99,8 @@ $icoStream  = [System.IO.MemoryStream]::new($iconBytes, 0, $iconBytes.Length)
 $form                 = [System.Windows.Forms.Form]::new()
 $form.Text            = 'VSD to VSDX Converter'
 $form.Icon            = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::new($icoStream).GetHIcon()))
-$form.Size            = [System.Drawing.Size]::new(450, 200)
+$form.Size            = [System.Drawing.Size]::new(450, 210)
+$form.MaximizeBox     = $false
 $form.FormBorderStyle = 'FixedDialog'
 
 $sourceLabel          = [System.Windows.Forms.Label]::new()
@@ -110,7 +110,7 @@ $sourceLabel.Width    = 100
 $form.Controls.Add($sourceLabel)
 
 $sourceTextBox          = [System.Windows.Forms.TextBox]::new()
-$sourceTextBox.Location = [System.Drawing.Point]::new(10, 30)
+$sourceTextBox.Location = [System.Drawing.Point]::new(10, 33)
 $sourceTextBox.Width    = 325
 $form.Controls.Add($sourceTextBox)
 
@@ -121,13 +121,13 @@ $destinationLabel.Width    = 300
 $form.Controls.Add($destinationLabel)
 
 $destinationTextBox          = [System.Windows.Forms.TextBox]::new()
-$destinationTextBox.Location = [System.Drawing.Point]::new(10, 95)
+$destinationTextBox.Location = [System.Drawing.Point]::new(10, 98)
 $destinationTextBox.Width    = 325
 $form.Controls.Add($destinationTextBox)
 
 $browseSourceButton          = [System.Windows.Forms.Button]::new()
 $browseSourceButton.Text     = 'Browse'
-$browseSourceButton.Location = [System.Drawing.Point]::new(350, 27)
+$browseSourceButton.Location = [System.Drawing.Point]::new(350, 31)
 $browseSourceButton.Add_Click({
     $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
     $result = $folderDialog.ShowDialog()
@@ -139,7 +139,7 @@ $form.Controls.Add($browseSourceButton)
 
 $browseDestinationButton          = [System.Windows.Forms.Button]::new()
 $browseDestinationButton.Text     = 'Browse'
-$browseDestinationButton.Location = [System.Drawing.Point]::new(350, 93)
+$browseDestinationButton.Location = [System.Drawing.Point]::new(350, 96)
 $browseDestinationButton.Add_Click({
     $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
     $result = $folderDialog.ShowDialog()
@@ -160,6 +160,16 @@ $convertButton.Text     = 'Convert'
 $convertButton.Location = [System.Drawing.Point]::new(140, 135)
 $convertButton.Add_Click({Convert-VSD $sourceTextBox.Text $destinationTextBox.Text})
 $form.Controls.Add($convertButton)
+
+$form.Add_Closing({param($sender,$e)
+    $result = [System.Windows.Forms.MessageBox]::Show(`
+        "Are you sure you want to exit?", `
+        "Close", [System.Windows.Forms.MessageBoxButtons]::YesNoCancel)
+    if ($result -ne [System.Windows.Forms.DialogResult]::Yes)
+    {
+        $e.Cancel= $true
+    }
+})
 
 # Launch the app window
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
