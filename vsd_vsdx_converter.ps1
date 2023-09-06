@@ -24,8 +24,8 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
     else {
         # Get all VSD files recursively from the source directory
         $vsdFiles = Get-ChildItem $sourceDirectory -Recurse -Filter '*.vsd' -Exclude '*.vsdx'
-
-        if (($vsdfiles | Measure-Object).Count -eq 0) {
+        $vsdFilesCount = ($vsdfiles | Measure-Object).Count
+        if ($vsdFilesCount -eq 0) {
             [System.Windows.Forms.MessageBox]::Show('No VSD files found for conversion.', 'Error', 'OK', 'WARNING')
         }
         else {
@@ -38,13 +38,13 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
             }
             # Open Visio
             try {
-                $visio = New-Object -ComObject Visio.Application -ErrorAction Stop
-
-                # Loop through each VSD file and convert it to VSDX using Visio COM object
-                $totalFiles     = 0
+                $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
+                Write-Host "Conversion started.`n"
+                $progress       = 0
                 $convertedFiles = 0
+                # Loop through each VSD file and convert it to VSDX using Visio COM object
                 foreach ($file in $vsdFiles) {
-                    $totalFiles++
+                    $progress++
                     $vsdFile = $file.FullName
                     if ($saveToSameDir) {
                         # Write each vsdx to their original directory
@@ -54,12 +54,15 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
                         # Write all vsdx to the given destination directory
                         $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
                     }
-
+                    $fileName = $file.BaseName
                     if (Test-Path -Path $vsdxFile -PathType Leaf) {
                         # Skip conversion destination file already exists
+                        Write-Host "Skipping   file $progress of $vsdFilesCount :`t$fileName"
                         Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
                     }
                     else {
+                        Write-Host "Processing file $progress of $vsdFilesCount :`t$fileName"
+                        
                         # Open the VSD
                         $document = $visio.Documents.Open($vsdFile)
 
@@ -75,7 +78,8 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
                 }
                 # Quit Visio
                 $visio.Quit()
-                Write-Log "Converted $convertedFiles out of $totalFiles files found."
+                Write-Host "`nConversion ended."
+                Write-Log "Converted $convertedFiles out of $vsdFilesCount files found."
                 [System.Windows.Forms.MessageBox]::Show('Conversion complete.', 'Info', 'OK', 'INFO')
             }
             catch {
