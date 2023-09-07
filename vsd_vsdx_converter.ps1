@@ -89,17 +89,17 @@ $closeButton.Add_Click({
 })
 $form1.Controls.Add($closeButton)
 
-# Convert button
+# Convert button. Include conversion requirement checks
 $convertButton            = [System.Windows.Forms.Button]::new()
 $convertButton.Location   = [System.Drawing.Point]::new(140, 135)
 $convertButton.Text       = 'Convert'
 $convertButton.Add_Click({
-    $conversionID = -join ((48..57) + (97..122) | Get-Random -Count 4 | % {[char]$_})
+    $conversionID         = -join ((48..57) + (97..122) | Get-Random -Count 4 | % {[char]$_})
     $sourceDirectory      = $sourceTextBox.Text
     $destinationDirectory = $destinationTextBox.Text
-    $saveToSameDir = if ($destinationDirectory.Trim()) { $false } else { $true }
+    $saveToSameDir        = if ($destinationDirectory.Trim()) { $false } else { $true }
 
-    # Perform initial checks for converting
+    # Perform requirement checks for converting
     if (-not ($sourceDirectory.Trim())) {
         [System.Windows.Forms.MessageBox]::Show('Source directory cannot be empty.', 'Error', 'OK', 'WARNING')
     }
