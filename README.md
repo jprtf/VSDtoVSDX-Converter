@@ -17,7 +17,7 @@ Note that scripts compiled with PS2EXE are often mistakenly detected as malware.
 
 1. Add the following code to the first line
 
-    `@findstr/v "^@f.*&" "%~f0" | powershell -NoProfile -ExecutionPolicy Bypass -&goto:eof`
+    `@findstr/v "^@f.*&" "%~f0" | powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle hidden -&goto:eof`
 
 1. Save it as as .cmd
 
