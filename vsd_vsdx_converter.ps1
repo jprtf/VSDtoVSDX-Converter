@@ -1,12 +1,14 @@
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
+$sessionID    = -join ((48..57) + (97..122) | Get-Random -Count 6 | % {[char]$_})
+$conversionID = '    '
 
 ################### LOGGING FUNCTION ###############
 $Logfile = '.\vsd_converter.log'
 function Write-Log {
     Param ([string]$LogString)
-    $Stamp = (Get-Date).toString('yyyy/MM/dd HH:mm:ss')
-    $LogMessage = "$Stamp $LogString"
+    $Stamp      = (Get-Date).toString('yyyy-MM-dd HH:mm:ss')
+    $LogMessage = "[$Stamp][$sessionID][$conversionID] $LogString"
     Add-content $LogFile -value $LogMessage
 }
 Write-Log 'App STARTED'
@@ -82,7 +84,9 @@ $form1.Controls.Add($browseDestinationButton)
 $closeButton          = [System.Windows.Forms.Button]::new()
 $closeButton.Location = [System.Drawing.Point]::new(230, 135)
 $closeButton.Text     = 'Close'
-$closeButton.Add_Click({$form1.Close()})
+$closeButton.Add_Click({
+    $form1.Close()
+})
 $form1.Controls.Add($closeButton)
 
 # Convert button
@@ -90,6 +94,7 @@ $convertButton            = [System.Windows.Forms.Button]::new()
 $convertButton.Location   = [System.Drawing.Point]::new(140, 135)
 $convertButton.Text       = 'Convert'
 $convertButton.Add_Click({
+    $conversionID = -join ((48..57) + (97..122) | Get-Random -Count 4 | % {[char]$_})
     $sourceDirectory      = $sourceTextBox.Text
     $destinationDirectory = $destinationTextBox.Text
     $saveToSameDir = if ($destinationDirectory.Trim()) { $false } else { $true }
@@ -130,6 +135,8 @@ $form1.Add_Closing({param($sender,$e)
         'Are you sure you want to exit?', `
         'Close', [System.Windows.Forms.MessageBoxButtons]::YesNoCancel)
     if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+        $form2.Dispose()
+        $form1.Dispose()
         Write-Log 'App CLOSED'
     }
     else {
@@ -152,7 +159,6 @@ $form2.ControlBox      = $False
 # Progress label to display current file being converted
 $progressLabel          = [System.Windows.Forms.Label]::new()
 $progressLabel.Location = [System.Drawing.Point]::new(5, 10)
-$progressLabel.Text     = 'Preparing to Convert...'
 $progressLabel.Width    = 380
 $form2.controls.add($progressLabel)
 
@@ -165,7 +171,8 @@ $form2.Controls.Add($progressBar)
 
 ################ VSD to VSDX conversion ############
 $form2.Add_Shown({
-    $progressBar.Step = ( 1 / $vsdFilesCount ) * 100
+    $progressLabel.Text = 'Preparing to Convert...'
+    $progressBar.Step   = ( 1 / $vsdFilesCount ) * 100
     # Open Visio
     try {
         $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
@@ -194,6 +201,7 @@ $form2.Add_Shown({
             }
             else {
                 Write-Log "Processing file $progress of $vsdFilesCount : $fileName"
+
                 # Convert the file to VSDX using Visio COM object
                 $document = $visio.Documents.Open($vsdFile)
                 $document.SaveAs($vsdxFile)
