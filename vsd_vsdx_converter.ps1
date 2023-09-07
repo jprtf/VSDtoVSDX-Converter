@@ -1,7 +1,7 @@
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-################### Logging function ###############
+################### LOGGING FUNCTION ###############
 $Logfile = '.\vsd_converter.log'
 function Write-Log {
     Param ([string]$LogString)
@@ -9,12 +9,92 @@ function Write-Log {
     $LogMessage = "$Stamp $LogString"
     Add-content $LogFile -value $LogMessage
 }
+Write-Log 'App STARTED'
 
-################ VSD to VSDX conversion ############
-function Convert-VSD ($sourceDirectory, $destinationDirectory) {
+#################### MAIN WINDOW ###################
+# Main window icon
+$iconBase64 = 'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AAAAAAAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuuX/AAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/ALrl/wC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALrl/wC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAC65f8AuuX/ALrl/wC65f8AAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADWsDD/AAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/9awMP/WsDD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1rAw/9awMP8AAAAAAAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/wAAAAAAAAAAAAAAAAAAAADWsDD/1rAw/9awMP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1rAw/9awMP/WsDD/1rAw/9awMP/WsDD/AAAAAAAAAADWsDD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADWsDD/1rAw/9awMP/WsDD/AAAAAAAAAAAAAAAA1rAw/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP//AADuHwAA7AcAAOHDAADj8wAA4PsAAP//AAD//wAA7wcAAOfHAADjxwAA8DcAAPh3AAD//wAA//8AAA=='
+$iconBytes  = [Convert]::FromBase64String($iconBase64)
+$icoStream  = [System.IO.MemoryStream]::new($iconBytes, 0, $iconBytes.Length)
 
+# Main window form
+$form1                 = [System.Windows.Forms.Form]::new()
+$form1.StartPosition   = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$form1.Icon            = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::new($icoStream).GetHIcon()))
+$form1.Size            = [System.Drawing.Size]::new(450, 210)
+$form1.MaximizeBox     = $false
+$form1.Text            = 'VSD to VSDX Converter'
+$form1.FormBorderStyle = 'FixedDialog'
+
+# Label for source directory Text box
+$sourceLabel            = [System.Windows.Forms.Label]::new()
+$sourceLabel.Location   = [System.Drawing.Point]::new(10, 10)
+$sourceLabel.Text       = 'Source directory:'
+$sourceLabel.Width      = 100
+$form1.Controls.Add($sourceLabel)
+
+# Source directory Text box
+$sourceTextBox          = [System.Windows.Forms.TextBox]::new()
+$sourceTextBox.Location = [System.Drawing.Point]::new(10, 33)
+$sourceTextBox.Width    = 325
+$form1.Controls.Add($sourceTextBox)
+
+# Label for destination directory Text box
+$destinationLabel          = [System.Windows.Forms.Label]::new()
+$destinationLabel.Location = [System.Drawing.Point]::new(10, 75)
+$destinationLabel.Text     = 'Destination directory (leave blank to save in place):'
+$destinationLabel.Width    = 300
+$form1.Controls.Add($destinationLabel)
+
+# Destination directory Text box
+$destinationTextBox          = [System.Windows.Forms.TextBox]::new()
+$destinationTextBox.Location = [System.Drawing.Point]::new(10, 98)
+$destinationTextBox.Width    = 325
+$form1.Controls.Add($destinationTextBox)
+
+# Browse button for source directory
+$browseSourceButton          = [System.Windows.Forms.Button]::new()
+$browseSourceButton.Location = [System.Drawing.Point]::new(350, 31)
+$browseSourceButton.Text     = 'Browse'
+$browseSourceButton.Add_Click({
+    $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
+    $result = $folderDialog.ShowDialog()
+    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+        $sourceTextBox.Text = $folderDialog.SelectedPath
+    }
+})
+$form1.Controls.Add($browseSourceButton)
+
+# Browse button for destination directory
+$browseDestinationButton          = [System.Windows.Forms.Button]::new()
+$browseDestinationButton.Location = [System.Drawing.Point]::new(350, 96)
+$browseDestinationButton.Text     = 'Browse'
+$browseDestinationButton.Add_Click({
+    $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
+    $result       = $folderDialog.ShowDialog()
+    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+        $destinationTextBox.Text = $folderDialog.SelectedPath
+    }
+})
+$form1.Controls.Add($browseDestinationButton)
+
+# Close button
+$closeButton          = [System.Windows.Forms.Button]::new()
+$closeButton.Location = [System.Drawing.Point]::new(230, 135)
+$closeButton.Text     = 'Close'
+$closeButton.Add_Click({$form1.Close()})
+$form1.Controls.Add($closeButton)
+
+# Convert button
+$convertButton            = [System.Windows.Forms.Button]::new()
+$convertButton.Location   = [System.Drawing.Point]::new(140, 135)
+$convertButton.Text       = 'Convert'
+$convertButton.Add_Click({
+    $sourceDirectory      = $sourceTextBox.Text
+    $destinationDirectory = $destinationTextBox.Text
     $saveToSameDir = if ($destinationDirectory.Trim()) { $false } else { $true }
 
+    # Perform initial checks for converting
     if (-not ($sourceDirectory.Trim())) {
         [System.Windows.Forms.MessageBox]::Show('Source directory cannot be empty.', 'Error', 'OK', 'WARNING')
     }
@@ -24,6 +104,7 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
     else {
         # Get all VSD files recursively from the source directory
         $vsdFiles = Get-ChildItem $sourceDirectory -Recurse -Filter '*.vsd' -Exclude '*.vsdx'
+
         $vsdFilesCount = ($vsdfiles | Measure-Object).Count
         if ($vsdFilesCount -eq 0) {
             [System.Windows.Forms.MessageBox]::Show('No VSD files found for conversion.', 'Error', 'OK', 'WARNING')
@@ -36,145 +117,111 @@ function Convert-VSD ($sourceDirectory, $destinationDirectory) {
                     Write-Log "Directory created: [$destinationDirectory]."
                 }
             }
-            # Open Visio
-            try {
-                $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
-                Write-Host "Conversion started.`n"
-                $progress       = 0
-                $convertedFiles = 0
-                # Loop through each VSD file and convert it to VSDX using Visio COM object
-                foreach ($file in $vsdFiles) {
-                    $progress++
-                    $vsdFile = $file.FullName
-                    if ($saveToSameDir) {
-                        # Write each vsdx to their original directory
-                        $vsdxFile = [System.IO.Path]::ChangeExtension($file.FullName, 'vsdx')
-                    }
-                    else {
-                        # Write all vsdx to the given destination directory
-                        $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
-                    }
-                    $fileName = $file.BaseName
-                    if (Test-Path -Path $vsdxFile -PathType Leaf) {
-                        # Skip conversion destination file already exists
-                        Write-Host "Skipping   file $progress of $vsdFilesCount :`t$fileName"
-                        Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
-                    }
-                    else {
-                        Write-Host "Processing file $progress of $vsdFilesCount :`t$fileName"
-                        
-                        # Open the VSD
-                        $document = $visio.Documents.Open($vsdFile)
-
-                        # Save as VSDX
-                        $document.SaveAs($vsdxFile)
-
-                        # Close the document
-                        $document.Close()
-
-                        $convertedFiles++
-                        Write-Log "Converted [$vsdFile] to [$vsdxFile]."
-                    }
-                }
-                # Quit Visio
-                $visio.Quit()
-                Write-Host "`nConversion ended."
-                Write-Log "Converted $convertedFiles out of $vsdFilesCount files found."
-                [System.Windows.Forms.MessageBox]::Show('Conversion complete.', 'Info', 'OK', 'INFO')
-            }
-            catch {
-                Write-Log 'Unable to use MS Visio.'
-                Write-Log $_
-                [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
-            }
+            # All checks OK. Start conversion
+            $form2.ShowDialog()
         }
     }
-}
-
-Write-Log 'App STARTED'
-Register-EngineEvent PowerShell.Exiting -SupportEvent -Action { Write-Log 'App CLOSED' }
-
-################# Create Windows Form ##############
-# Form icon
-$iconBase64 = 'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AAAAAAAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuuX/AAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/ALrl/wC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALrl/wC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAC65f8AuuX/ALrl/wC65f8AAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC65f8AuuX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAuuX/ALrl/wC65f8AuuX/ALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAALrl/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADWsDD/AAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/9awMP/WsDD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1rAw/9awMP8AAAAAAAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANawMP/WsDD/1rAw/wAAAAAAAAAAAAAAAAAAAADWsDD/1rAw/9awMP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1rAw/9awMP/WsDD/1rAw/9awMP/WsDD/AAAAAAAAAADWsDD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADWsDD/1rAw/9awMP/WsDD/AAAAAAAAAAAAAAAA1rAw/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//8AAP//AADuHwAA7AcAAOHDAADj8wAA4PsAAP//AAD//wAA7wcAAOfHAADjxwAA8DcAAPh3AAD//wAA//8AAA=='
-$iconBytes  = [Convert]::FromBase64String($iconBase64)
-$icoStream  = [System.IO.MemoryStream]::new($iconBytes, 0, $iconBytes.Length)
-
-$form                 = [System.Windows.Forms.Form]::new()
-$form.Text            = 'VSD to VSDX Converter'
-$form.Icon            = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::new($icoStream).GetHIcon()))
-$form.Size            = [System.Drawing.Size]::new(450, 210)
-$form.MaximizeBox     = $false
-$form.FormBorderStyle = 'FixedDialog'
-
-$sourceLabel          = [System.Windows.Forms.Label]::new()
-$sourceLabel.Text     = 'Source directory:'
-$sourceLabel.Location = [System.Drawing.Point]::new(10, 10)
-$sourceLabel.Width    = 100
-$form.Controls.Add($sourceLabel)
-
-$sourceTextBox          = [System.Windows.Forms.TextBox]::new()
-$sourceTextBox.Location = [System.Drawing.Point]::new(10, 33)
-$sourceTextBox.Width    = 325
-$form.Controls.Add($sourceTextBox)
-
-$destinationLabel          = [System.Windows.Forms.Label]::new()
-$destinationLabel.Text     = 'Destination directory (leave blank to save in place):'
-$destinationLabel.Location = [System.Drawing.Point]::new(10, 75)
-$destinationLabel.Width    = 300
-$form.Controls.Add($destinationLabel)
-
-$destinationTextBox          = [System.Windows.Forms.TextBox]::new()
-$destinationTextBox.Location = [System.Drawing.Point]::new(10, 98)
-$destinationTextBox.Width    = 325
-$form.Controls.Add($destinationTextBox)
-
-$browseSourceButton          = [System.Windows.Forms.Button]::new()
-$browseSourceButton.Text     = 'Browse'
-$browseSourceButton.Location = [System.Drawing.Point]::new(350, 31)
-$browseSourceButton.Add_Click({
-    $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
-    $result = $folderDialog.ShowDialog()
-    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-        $sourceTextBox.Text = $folderDialog.SelectedPath
-    }
 })
-$form.Controls.Add($browseSourceButton)
+$form1.Controls.Add($convertButton)
 
-$browseDestinationButton          = [System.Windows.Forms.Button]::new()
-$browseDestinationButton.Text     = 'Browse'
-$browseDestinationButton.Location = [System.Drawing.Point]::new(350, 96)
-$browseDestinationButton.Add_Click({
-    $folderDialog = [System.Windows.Forms.FolderBrowserDialog]::new()
-    $result = $folderDialog.ShowDialog()
-    if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-        $destinationTextBox.Text = $folderDialog.SelectedPath
-    }
-})
-$form.Controls.Add($browseDestinationButton)
-
-$closeButton          = [System.Windows.Forms.Button]::new()
-$closeButton.Text     = 'Close'
-$closeButton.Location = [System.Drawing.Point]::new(230, 135)
-$closeButton.Add_Click({$form.Close()})
-$form.Controls.Add($closeButton)
-
-$convertButton          = [System.Windows.Forms.Button]::new()
-$convertButton.Text     = 'Convert'
-$convertButton.Location = [System.Drawing.Point]::new(140, 135)
-$convertButton.Add_Click({Convert-VSD $sourceTextBox.Text $destinationTextBox.Text})
-$form.Controls.Add($convertButton)
-
-$form.Add_Closing({param($sender,$e)
+# Confirmation MessageBox upon exiting the program
+$form1.Add_Closing({param($sender,$e)
     $result = [System.Windows.Forms.MessageBox]::Show(`
-        "Are you sure you want to exit?", `
-        "Close", [System.Windows.Forms.MessageBoxButtons]::YesNoCancel)
-    if ($result -ne [System.Windows.Forms.DialogResult]::Yes)
-    {
-        $e.Cancel= $true
+        'Are you sure you want to exit?', `
+        'Close', [System.Windows.Forms.MessageBoxButtons]::YesNoCancel)
+    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Write-Log 'App CLOSED'
+    }
+    else {
+        $e.Cancel = $true
     }
 })
 
-# Launch the app window
-$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-[System.Windows.Forms.Application]::Run($form)
+################## PROGRESS WINDOW #################
+# Progress window form
+$form2                 = [System.Windows.Forms.Form]::new()
+$form2.Size            = [System.Drawing.Size]::new(400, 105)
+$form2.StartPosition   = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$form2.Text            = 'Converting...'
+$form2.FormBorderStyle = 'FixedDialog'
+$form2.ShowIcon        = $false
+$form2.MaximizeBox     = $False
+$form2.MinimizeBox     = $False
+$form2.ControlBox      = $False
+
+# Progress label to display current file being converted
+$progressLabel          = [System.Windows.Forms.Label]::new()
+$progressLabel.Location = [System.Drawing.Point]::new(5, 10)
+$progressLabel.Text     = 'Preparing to Convert...'
+$progressLabel.Width    = 380
+$form2.controls.add($progressLabel)
+
+# Progress bar to display conversion progress
+$progressBar          = [System.Windows.Forms.ProgressBar]::new()
+$progressBar.Location = [System.Drawing.Point]::new(7, 33)
+$progressBar.Style    = 'Continuous'
+$progressBar.Width    = 370
+$form2.Controls.Add($progressBar)
+
+################ VSD to VSDX conversion ############
+$form2.Add_Shown({
+    $progressBar.Step = ( 1 / $vsdFilesCount ) * 100
+    # Open Visio
+    try {
+        $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
+        Write-Log 'Conversion started'
+        $progress       = 0
+        $convertedFiles = 0
+        # Loop through each VSD file found
+        foreach ($file in $vsdFiles) {
+            $progress++
+            $vsdFile  = $file.FullName
+            $fileName = $file.BaseName
+            $progressBar.PerformStep()
+            $progressLabel.text = "Processing file: $fileName"
+            if ($saveToSameDir) {
+                # Write each vsdx to their original directory
+                $vsdxFile = [System.IO.Path]::ChangeExtension($file.FullName, 'vsdx')
+            }
+            else {
+                # Write all vsdx to the given destination directory
+                $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
+            }
+            if (Test-Path -Path $vsdxFile -PathType Leaf) {
+                # Skip conversion destination file already exists
+                Write-Log "Skipping   file $progress of $vsdFilesCount : $fileName"
+                Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
+            }
+            else {
+                Write-Log "Processing file $progress of $vsdFilesCount : $fileName"
+                # Convert the file to VSDX using Visio COM object
+                $document = $visio.Documents.Open($vsdFile)
+                $document.SaveAs($vsdxFile)
+                $document.Close()
+
+                $convertedFiles++
+                Write-Log "Converted [$vsdFile] to [$vsdxFile]."
+            }
+        }
+        # Quit Visio
+        $visio.Quit()
+
+        # Notify the user
+        $progressLabel.text = 'Finished'
+        Write-Log 'Conversion ended.'
+        Write-Log "Converted $convertedFiles out of $vsdFilesCount files found."
+        [System.Windows.Forms.MessageBox]::Show('Conversion complete.', 'Info', 'OK', 'INFO')
+
+        # Close the window
+        $form2.Close()
+    }
+    catch {
+        # Visio errors (not installed, crashed, etc.)
+        Write-Log 'Unable to use MS Visio.'
+        Write-Log $_
+        [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
+    }
+})
+
+# Launch program (main window)
+[System.Windows.Forms.Application]::Run($form1)
