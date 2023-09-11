@@ -224,6 +224,7 @@ $form2.Add_Shown({
         $form2.Close()
     }
     catch {
+        $form2.Close()
         # Visio errors (not installed, crashed, etc.)
         Write-Log 'Unable to use MS Visio.'
         Write-Log $_
