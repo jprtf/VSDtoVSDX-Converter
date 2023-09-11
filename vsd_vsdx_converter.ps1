@@ -195,7 +195,7 @@ $form2.Add_Shown({
                 $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
             }
             if (Test-Path -Path $vsdxFile -PathType Leaf) {
-                # Skip conversion destination file already exists
+                # Skip conversion if destination file already exists
                 Write-Log "Skipping   file $progress of $vsdFilesCount : $fileName"
                 Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
             }
