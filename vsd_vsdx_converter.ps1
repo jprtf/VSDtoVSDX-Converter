@@ -4,7 +4,7 @@ $sessionID    = -join ((48..57) + (97..122) | Get-Random -Count 6 | % {[char]$_}
 $conversionID = '    '
 
 ################### LOGGING FUNCTION ###############
-$Logfile = '.\vsd_converter.log'
+$LogFile = '.\vsd_converter.log'
 function Write-Log {
     Param ([string]$LogString)
     $Stamp      = (Get-Date).toString('yyyy-MM-dd HH:mm:ss')
@@ -24,7 +24,7 @@ $form1                 = [System.Windows.Forms.Form]::new()
 $form1.StartPosition   = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $form1.Icon            = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::new($icoStream).GetHIcon()))
 $form1.Size            = [System.Drawing.Size]::new(450, 210)
-$form1.MaximizeBox     = $false
+$form1.MaximizeBox     = $False
 $form1.Text            = 'VSD to VSDX Converter'
 $form1.FormBorderStyle = 'FixedDialog'
 
@@ -97,7 +97,7 @@ $convertButton.Add_Click({
     $conversionID         = -join ((48..57) + (97..122) | Get-Random -Count 4 | % {[char]$_})
     $sourceDirectory      = $sourceTextBox.Text
     $destinationDirectory = $destinationTextBox.Text
-    $saveToSameDir        = if ($destinationDirectory.Trim()) { $false } else { $true }
+    $saveToSameDir        = if ($destinationDirectory.Trim()) { $False } else { $True }
 
     # Perform requirement checks for converting
     if (-not ($sourceDirectory.Trim())) {
@@ -140,7 +140,7 @@ $form1.Add_Closing({param($sender,$e)
         Write-Log 'App CLOSED'
     }
     else {
-        $e.Cancel = $true
+        $e.Cancel = $True
     }
 })
 
@@ -151,7 +151,7 @@ $form2.Size            = [System.Drawing.Size]::new(400, 105)
 $form2.StartPosition   = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $form2.Text            = 'Converting...'
 $form2.FormBorderStyle = 'FixedDialog'
-$form2.ShowIcon        = $false
+$form2.ShowIcon        = $False
 $form2.MaximizeBox     = $False
 $form2.MinimizeBox     = $False
 $form2.ControlBox      = $False
@@ -172,7 +172,7 @@ $form2.Controls.Add($progressBar)
 ################ VSD to VSDX conversion ############
 $form2.Add_Shown({
     $progressLabel.Text = 'Preparing to Convert...'
-    $progressBar.Step   = ( 1 / $vsdFilesCount ) * 100
+    $progressBar.Step   = (1/$vsdFilesCount)*100
     # Open Visio
     try {
         $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
@@ -225,7 +225,7 @@ $form2.Add_Shown({
     }
     catch {
         # Visio errors (not installed, crashed, etc.)
-        Write-Log 'Unable to use MS Visio.'
+        Write-Log 'Unable to use MS Visio:'
         Write-Log $_
         [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
         $form2.Close()
