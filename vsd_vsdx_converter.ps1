@@ -4,7 +4,7 @@ $sessionID    = -join ((48..57) + (97..122) | Get-Random -Count 6 | % {[char]$_}
 $conversionID = '    '
 
 ################### LOGGING FUNCTION ###############
-$Logfile = '.\vsd_converter.log'
+$LogFile = '.\vsd_converter.log'
 function Write-Log {
     Param ([string]$LogString)
     $Stamp      = (Get-Date).toString('yyyy-MM-dd HH:mm:ss')
@@ -172,7 +172,7 @@ $form2.Controls.Add($progressBar)
 ################ VSD to VSDX conversion ############
 $form2.Add_Shown({
     $progressLabel.Text = 'Preparing to Convert...'
-    $progressBar.Step   = ( 1 / $vsdFilesCount ) * 100
+    $progressBar.Step   = (1/$vsdFilesCount)*100
     try {
         # Open Visio
         $visio = New-Object -ComObject Visio.InvisibleApp
