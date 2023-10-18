@@ -4,7 +4,7 @@ $sessionID    = -join ((48..57) + (97..122) | Get-Random -Count 6 | % {[char]$_}
 $conversionID = '    '
 
 ################### LOGGING FUNCTION ###############
-$LogFile = '.\vsd_converter.log'
+$Logfile = '.\vsd_converter.log'
 function Write-Log {
     Param ([string]$LogString)
     $Stamp      = (Get-Date).toString('yyyy-MM-dd HH:mm:ss')
@@ -172,14 +172,24 @@ $form2.Controls.Add($progressBar)
 ################ VSD to VSDX conversion ############
 $form2.Add_Shown({
     $progressLabel.Text = 'Preparing to Convert...'
-    $progressBar.Step   = (1/$vsdFilesCount)*100
-    # Open Visio
+    $progressBar.Step   = ( 1 / $vsdFilesCount ) * 100
     try {
-        $visio = New-Object -ComObject Visio.InvisibleApp -ErrorAction Stop
-        Write-Log 'Conversion started'
-        $progress       = 0
-        $convertedFiles = 0
-        # Loop through each VSD file found
+        # Open Visio
+        $visio = New-Object -ComObject Visio.InvisibleApp
+    }
+    catch {
+        # Visio errors (not installed, crashed, etc.)
+        Write-Log 'Unable to use MS Visio:'
+        Write-Log $_.toString().Trim()
+        [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
+        $form2.Close()
+    }
+    Write-Log 'Conversion started'
+    $progress        = 0
+    $convertedFiles  = 0
+    $failedToConvert = @()
+    # Loop through each VSD file found
+    try {
         foreach ($file in $vsdFiles) {
             $progress++
             $vsdFile  = $file.FullName
@@ -195,20 +205,27 @@ $form2.Add_Shown({
                 $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
             }
             if (Test-Path -Path $vsdxFile -PathType Leaf) {
-                # Skip conversion if destination file already exists
+                # Skip conversion destination file already exists
                 Write-Log "Skipping   file $progress of $vsdFilesCount : $fileName"
                 Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
+                $failedToConvert += "    [DUPLICATE] $vsdFile"
             }
             else {
-                Write-Log "Processing file $progress of $vsdFilesCount : $fileName"
-
-                # Convert the file to VSDX using Visio COM object
-                $document = $visio.Documents.Open($vsdFile)
-                $document.SaveAs($vsdxFile)
-                $document.Close()
-
-                $convertedFiles++
-                Write-Log "Converted [$vsdFile] to [$vsdxFile]."
+                try {
+                    Write-Log "Processing file $progress of $vsdFilesCount : $fileName"
+                    # Convert the file to VSDX using Visio COM object
+                    $document = $visio.Documents.Open($vsdFile)
+                    $document.SaveAs($vsdxFile)
+                    $document.Close()
+                    
+                    Write-Log "Converted [$vsdFile] to [$vsdxFile]."
+                    $convertedFiles++
+                }
+                catch {
+                    Write-Log "Failed to convert file [$vsdFile]:"
+                    Write-Log $_.toString().Trim()
+                    $failedToConvert += "    [  ERROR  ] $vsdFile"
+                }
             }
         }
         # Quit Visio
@@ -218,17 +235,21 @@ $form2.Add_Shown({
         $progressLabel.text = 'Finished'
         Write-Log 'Conversion ended.'
         Write-Log "Converted $convertedFiles out of $vsdFilesCount files found."
-        [System.Windows.Forms.MessageBox]::Show('Conversion complete.', 'Info', 'OK', 'INFO')
-
+        [System.Windows.Forms.MessageBox]::Show("Conversion complete.`nConverted $convertedFiles out of $vsdFilesCount files found.", 'Info', 'OK', 'INFO')
+        
+        if ($failedToConvert.count -gt 0) {
+            Write-Log "The following files were not possible to convert:"
+            Add-content $LogFile -value $failedToConvert
+        }
         # Close the window
         $form2.Close()
     }
     catch {
-        # Visio errors (not installed, crashed, etc.)
-        Write-Log 'Unable to use MS Visio:'
-        Write-Log $_
-        [System.Windows.Forms.MessageBox]::Show('Unable to use MS Visio.', 'Error', 'OK', 'ERROR')
-        $form2.Close()
+        # Unknown error
+        Write-Log 'An ERROR occured.'
+        Write-Log $_.toString().Trim()
+        [System.Windows.Forms.MessageBox]::Show("An error occured.`nCheck log for derails.", 'Error', 'OK', 'ERROR')
+		$form2.Close()
     }
 })
 
