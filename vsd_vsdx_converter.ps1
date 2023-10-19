@@ -188,8 +188,8 @@ $form2.Add_Shown({
     $progress        = 0
     $convertedFiles  = 0
     $failedToConvert = @()
-    # Loop through each VSD file found
     try {
+        # Loop through each VSD file found
         foreach ($file in $vsdFiles) {
             $progress++
             $vsdFile  = $file.FullName
@@ -205,7 +205,7 @@ $form2.Add_Shown({
                 $vsdxFile = Join-Path -Path $destinationDirectory -ChildPath ($file.Name -replace '\.vsd$', '.vsdx')
             }
             if (Test-Path -Path $vsdxFile -PathType Leaf) {
-                # Skip conversion destination file already exists
+                # Skip conversion if destination file already exists
                 Write-Log "Skipping   file $progress of $vsdFilesCount : $fileName"
                 Write-Log "Skipped conversion for [$vsdxFile] because a file with that name already exists."
                 $failedToConvert += "    [DUPLICATE] $vsdFile"
@@ -245,11 +245,11 @@ $form2.Add_Shown({
         $form2.Close()
     }
     catch {
-        # Unknown error
+        # Unknown errors
         Write-Log 'An ERROR occured.'
         Write-Log $_.toString().Trim()
         [System.Windows.Forms.MessageBox]::Show("An error occured.`nCheck log for derails.", 'Error', 'OK', 'ERROR')
-		$form2.Close()
+        $form2.Close()
     }
 })
 
